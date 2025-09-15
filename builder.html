@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ICICI Bank — Demo (Builder + Private Constructor)</title>
+  <style>
+    :root{--bg:#f4f6fb;--card:#fff;--accent:#d93b2b;--muted:#6b7280;--glass:rgba(255,255,255,0.6)}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,#f6f8fc 0%,var(--bg) 100%);color:#0f172a}
+    header{background:var(--card);padding:18px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 6px 18px rgba(15,23,42,0.06);position:sticky;top:0;z-index:5}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#ff8a66);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .container{max-width:1100px;margin:28px auto;padding:0 18px}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:20px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.04)}
+    h1{font-size:18px;margin:0}
+    p.muted{color:var(--muted);margin:6px 0 0;font-size:13px}
+    .balance{font-size:34px;font-weight:700;margin-top:10px}
+    .actions{display:flex;gap:10px;margin-top:14px}
+    button{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(217,59,43,0.12)}
+    form{display:grid;gap:10px}
+    label{font-size:13px;color:var(--muted)}
+    input,select{padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px}
+    .transactions{max-height:360px;overflow:auto;margin-top:10px}
+    .tx{display:flex;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:8px;border:1px solid #f1f4f8}
+    .tx .left{display:flex;gap:10px;align-items:center}
+    .tx .tag{padding:6px 8px;border-radius:8px;background:var(--glass);font-weight:600}
+    footer{max-width:1100px;margin:26px auto;padding:0 18px;color:var(--muted);font-size:13px}
+    .small{font-size:13px;color:var(--muted)}
+    .accounts-list{display:flex;flex-direction:column;gap:10px}
+    .account-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #f1f4f8}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}.container{padding:0 12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="mark">IB</div>
+      <div>
+        <div style="font-weight:700">ICICI Bank — Demo</div>
+        <div style="font-size:12px;color:var(--muted)">Builder + private constructor (demo only)</div>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="small">Demo Server: <strong id="server-status">stopped</strong></div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <section>
+        <div class="card">
+          <h1>Welcome, Demo Customer</h1>
+          <p class="muted">This demo uses the <strong>Builder design pattern</strong> to configure and create a <em>BankServer</em>. The actual constructor is private (hidden inside a closure). Use the <code>BankServerBuilder()</code> to set options and call <code>.build()</code> to obtain the server instance.</p>
+
+          <div style="display:flex;gap:18px;margin-top:18px;align-items:center;flex-wrap:wrap">
+            <div>
+              <div class="small">Total Balance</div>
+              <div class="balance">₹ <span id="total-balance">0.00</span></div>
+            </div>
+
+            <div class="actions">
+              <button id="btn-deposit">Deposit</button>
+              <button id="btn-withdraw" class="ghost">Withdraw</button>
+              <button id="btn-transfer" class="ghost">Transfer</button>
+            </div>
+          </div>
+
+          <hr style="margin:16px 0;border:none;border-top:1px solid #f1f4f8" />
+
+          <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1">
+              <h3 style="margin:0 0 8px 0">Accounts</h3>
+              <div class="accounts-list card" id="accounts-list" style="padding:12px"></div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <input id="newAccountName" placeholder="Account nickname (e.g., Savings)" />
+                <button id="create-account">Create</button>
+              </div>
+            </div>
+
+            <div style="width:320px">
+              <h3 style="margin:0 0 8px 0">Transaction</h3>
+              <div class="card" style="padding:12px">
+                <form id="tx-form">
+                  <label>Type</label>
+                  <select id="tx-type">
+                    <option value="deposit">Deposit</option>
+                    <option value="withdraw">Withdraw</option>
+                    <option value="transfer">Transfer</option>
+                  </select>
+
+                  <label>From Account</label>
+                  <select id="from-account"></select>
+
+                  <label id="to-label">To Account (for transfer)</label>
+                  <select id="to-account"></select>
+
+                  <label>Amount (₹)</label>
+                  <input id="tx-amount" type="number" min="0.01" step="0.01" value="100" />
+
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <button type="submit">Submit</button>
+                    <button type="button" id="btn-clear" class="ghost">Clear</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="margin-top:16px">Recent Transactions</h3>
+          <div class="transactions card" id="transactions"></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <h3 style="margin:0">Server Console (Builder)</h3>
+          <p class="muted">Use <code>new BankServerBuilder()</code> to configure server options and call <code>.build()</code>. Builder supports chaining: <code>new BankServerBuilder().withType('persistent').withStorageKey('abc').withSingleton(true).build()</code>.</p>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="build-type"><option value="in-memory">in-memory</option><option value="persistent">persistent</option><option value="mock">mock</option></select>
+            <input id="build-storage" placeholder="storageKey (optional)" />
+            <label style="display:flex;align-items:center;gap:6px;margin-left:6px"><input type="checkbox" id="build-singleton" checked /> Singleton</label>
+            <button id="btn-build">Build Server</button>
+            <button id="btn-reset" class="ghost">Reset Data</button>
+          </div>
+
+          <hr style="margin:12px 0;border:none;border-top:1px solid #f1f4f8" />
+          <div style="font-size:13px;color:var(--muted)">Server Log</div>
+          <div id="server-log" style="max-height:360px;overflow:auto;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #f1f4f8;background:linear-gradient(180deg,rgba(250,250,250,0.6),rgba(245,247,250,0.6))"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    This is a demo site built for learning. DO NOT enter any real/sensitive information.
+  </footer>
+
+  <script>
+    /*************************************************************************
+     * BankServerBuilder + private constructor
+     * - Private constructor BankServerPrivate is hidden in closure
+     * - BankServerBuilder provides a fluent API to configure and build instances
+     * - Supports singleton option: if singleton=true the builder returns the cached instance for the chosen key
+     *************************************************************************/
+
+    const BankServerModule = (function(){
+      // Private constructor
+      function BankServerPrivate(config){
+        this.type = config.type || 'in-memory';
+        this.storageKey = config.storageKey || 'demo_bank_state_builder';
+        this.singletonKey = config.singletonKey || 'default';
+        this.accounts = {};
+        this.transactions = [];
+        this._load();
+      }
+
+      // prototype methods
+      BankServerPrivate.prototype._save = function(){try{localStorage.setItem(this.storageKey, JSON.stringify({accounts:this.accounts,transactions:this.transactions}));}catch(e){}
+      }
+      BankServerPrivate.prototype._load = function(){const raw=localStorage.getItem(this.storageKey);if(raw){try{const p=JSON.parse(raw);this.accounts=p.accounts||{};this.transactions=p.transactions||[]}catch(e){}}
+      }
+      BankServerPrivate.prototype.createAccount = function(name,initial=0){const id='A'+Date.now()+Math.floor(Math.random()*900);this.accounts[id]={id,name,balance:Math.round(initial*100)/100};this._save();return this.accounts[id];}
+      BankServerPrivate.prototype.getAccounts = function(){return Object.values(this.accounts).map(a=>Object.assign({},a));}
+      BankServerPrivate.prototype.getBalance = function(){return Object.values(this.accounts).reduce((s,a)=>s+a.balance,0);}
+      BankServerPrivate.prototype._addTransaction = function(tx){tx.id='T'+Date.now()+Math.floor(Math.random()*900);tx.date=new Date().toISOString();this.transactions.unshift(tx);if(this.transactions.length>200)this.transactions.pop();this._save();}
+      BankServerPrivate.prototype.deposit = function(accountId,amount){amount=Number(amount);if(!this.accounts[accountId])throw new Error('Account not found');if(amount<=0)throw new Error('Invalid amount');this.accounts[accountId].balance=Math.round((this.accounts[accountId].balance+amount)*100)/100;this._addTransaction({type:'deposit',to:accountId,amount});this._save();return this.accounts[accountId];}
+      BankServerPrivate.prototype.withdraw = function(accountId,amount){amount=Number(amount);if(!this.accounts[accountId])throw new Error('Account not found');if(amount<=0)throw new Error('Invalid amount');if(this.accounts[accountId].balance<amount)throw new Error('Insufficient funds');this.accounts[accountId].balance=Math.round((this.accounts[accountId].balance-amount)*100)/100;this._addTransaction({type:'withdraw',from:accountId,amount});this._save();return this.accounts[accountId];}
+      BankServerPrivate.prototype.transfer = function(fromId,toId,amount){amount=Number(amount);if(!this.accounts[fromId]||!this.accounts[toId])throw new Error('Account not found');if(amount<=0)throw new Error('Invalid amount');if(this.accounts[fromId].balance<amount)throw new Error('Insufficient funds');this.accounts[fromId].balance=Math.round((this.accounts[fromId].balance-amount)*100)/100;this.accounts[toId].balance=Math.round((this.accounts[toId].balance+amount)*100)/100;this._addTransaction({type:'transfer',from:fromId,to:toId,amount});this._save();return {from:this.accounts[fromId],to:this.accounts[toId]};}
+      BankServerPrivate.prototype.getTransactions = function(){return this.transactions.slice();}
+      BankServerPrivate.prototype.reset = function(){this.accounts={};this.transactions=[];localStorage.removeItem(this.storageKey);} 
+
+      // Builder and instance cache
+      const instances = {}; // cache for singleton instances keyed by singletonKey
+
+      function BankServerBuilder(){
+        // default config
+        this._config = {type:'in-memory',storageKey:'demo_bank_state_builder',singleton:true,singletonKey:'default'};
+      }
+
+      BankServerBuilder.prototype.withType = function(type){this._config.type=type;return this;}
+      BankServerBuilder.prototype.withStorageKey = function(key){this._config.storageKey=key;return this;}
+      BankServerBuilder.prototype.withSingleton = function(flag){this._config.singleton=!!flag;return this;}
+      BankServerBuilder.prototype.withSingletonKey = function(key){this._config.singletonKey=key;return this;}
+
+      BankServerBuilder.prototype.build = function(){
+        const cfg = this._config;
+        const key = cfg.singletonKey || 'default';
+        if(cfg.singleton){
+          if(instances[key]) return instances[key];
+          const s = new BankServerPrivate({type:cfg.type,storageKey:cfg.storageKey,singletonKey:key});
+          instances[key]=s; return s;
+        } else {
+          return new BankServerPrivate({type:cfg.type,storageKey:cfg.storageKey,singletonKey:key});
+        }
+      }
+
+      // Expose only builder constructor and helper to clear cache (for demo)
+      return {
+        Builder: BankServerBuilder,
+        _clearCache: function(k){ if(k) delete instances[k]; else { for(const x in instances) delete instances[x]; } }
+      }
+    })();
+
+    /*************************************************************************
+     * UI glue — uses BankServerModule.Builder to configure and build a server
+     *************************************************************************/
+
+    const log = (msg)=>{const el=document.getElementById('server-log');const p=document.createElement('div');p.style.padding='6px 8px';p.style.borderRadius='6px';p.style.marginBottom='6px';p.style.fontSize='13px';p.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;el.prepend(p);}
+    let server = null;
+
+    function renderServerStatus(){document.getElementById('server-status').textContent = server ? `running (${server.type})` : 'stopped';}
+    function renderAccounts(){const list=document.getElementById('accounts-list');list.innerHTML='';const from=document.getElementById('from-account');const to=document.getElementById('to-account');from.innerHTML='';to.innerHTML='';if(!server) return;const accounts=server.getAccounts();accounts.forEach(acc=>{const item=document.createElement('div');item.className='account-item';item.innerHTML=`<div><strong>${acc.name}</strong><div class=small>Id: ${acc.id}</div></div><div><div style="font-weight:700">₹ ${acc.balance.toFixed(2)}</div></div>`;list.appendChild(item);const option1=document.createElement('option');option1.value=acc.id;option1.textContent=`${acc.name} — ₹ ${acc.balance.toFixed(2)}`;const option2=option1.cloneNode(true);from.appendChild(option1);to.appendChild(option2);});document.getElementById('total-balance').textContent=server.getBalance().toFixed(2);renderTransactions();}
+    function renderTransactions(){const el=document.getElementById('transactions');el.innerHTML='';if(!server) return;const txs=server.getTransactions();if(txs.length===0) el.innerHTML='<div class="small muted">No transactions yet</div>';txs.forEach(t=>{const row=document.createElement('div');row.className='tx';const left=document.createElement('div');left.className='left';const tag=document.createElement('div');tag.className='tag';tag.textContent=t.type.toUpperCase();const desc=document.createElement('div');desc.innerHTML=`<div style="font-weight:600">${t.type==='transfer'? 'Transfer' : t.type.charAt(0).toUpperCase()+t.type.slice(1)}</div><div class="small">${t.from?('From: '+t.from):''} ${t.to?(' To: '+t.to):''}</div>`;left.appendChild(tag);left.appendChild(desc);const right=document.createElement('div');right.innerHTML=`<div style="font-weight:700">₹ ${Number(t.amount).toFixed(2)}</div><div class="small">${new Date(t.date).toLocaleString()}</div>`;row.appendChild(left);row.appendChild(right);el.appendChild(row);});}
+
+    // Build server button
+    document.getElementById('btn-build').addEventListener('click',()=>{
+      const type=document.getElementById('build-type').value;const storage=document.getElementById('build-storage').value.trim()||('demo_bank_state_builder_'+type);const singleton=document.getElementById('build-singleton').checked;const key = singleton ? 'main_'+type : ('temp_'+Date.now());
+      const builder = new BankServerModule.Builder();
+      builder.withType(type).withStorageKey(storage).withSingleton(singleton).withSingletonKey(key);
+      server = builder.build();
+      log(`Built server (type=${type}, storageKey=${storage}, singleton=${singleton})`);
+      renderServerStatus();renderAccounts();
+    });
+
+    document.getElementById('create-account').addEventListener('click',()=>{if(!server){alert('Build the server first');return}const name=document.getElementById('newAccountName').value.trim() || 'Account';const acc=server.createAccount(name,0);log(`Account created: ${acc.id} (${acc.name})`);document.getElementById('newAccountName').value='';renderAccounts();});
+
+    document.getElementById('tx-form').addEventListener('submit',e=>{e.preventDefault();if(!server){alert('Build the server first');return}const type=document.getElementById('tx-type').value;const from=document.getElementById('from-account').value;const to=document.getElementById('to-account').value;const amount=parseFloat(document.getElementById('tx-amount').value);try{if(type==='deposit'){if(!to) throw new Error('Select an account to deposit into');server.deposit(to,amount);log(`Deposit ₹${amount.toFixed(2)} -> ${to}`);} else if(type==='withdraw'){if(!from) throw new Error('Select an account to withdraw from');server.withdraw(from,amount);log(`Withdraw ₹${amount.toFixed(2)} <- ${from}`);} else if(type==='transfer'){if(!from||!to) throw new Error('Select both accounts');if(from===to) throw new Error('Cannot transfer to same account');server.transfer(from,to,amount);log(`Transfer ₹${amount.toFixed(2)} ${from} -> ${to}`);}renderAccounts();}catch(err){alert(err.message);log('ERROR: '+err.message);}});
+
+    document.getElementById('tx-type').addEventListener('change',e=>{const t=e.target.value;document.getElementById('to-label').style.opacity=(t==='transfer')?1:0.6;document.getElementById('to-account').disabled=(t!=='transfer');});
+    document.getElementById('btn-clear').addEventListener('click',()=>{document.getElementById('tx-amount').value='';});
+
+    document.getElementById('btn-reset').addEventListener('click',()=>{if(!confirm('Reset all demo data?')) return; if(server) server.reset(); BankServerModule._clearCache(); server=null; document.getElementById('server-log').innerHTML=''; document.getElementById('transactions').innerHTML=''; document.getElementById('accounts-list').innerHTML=''; document.getElementById('total-balance').textContent='0.00'; renderServerStatus();});
+
+    document.getElementById('btn-deposit').addEventListener('click',()=>{document.getElementById('tx-type').value='deposit';document.getElementById('tx-type').dispatchEvent(new Event('change'))});
+    document.getElementById('btn-withdraw').addEventListener('click',()=>{document.getElementById('tx-type').value='withdraw';document.getElementById('tx-type').dispatchEvent(new Event('change'))});
+    document.getElementById('btn-transfer').addEventListener('click',()=>{document.getElementById('tx-type').value='transfer';document.getElementById('tx-type').dispatchEvent(new Event('change'))});
+
+    // Auto-build a default server on first load for demo
+    window.addEventListener('load',()=>{
+      const builder = new BankServerModule.Builder();
+      builder.withType('persistent').withStorageKey('demo_bank_state_builder_persistent').withSingleton(true).withSingletonKey('main_persistent');
+      server = builder.build();
+      server.createAccount('Savings',5000);
+      server.createAccount('Checking',1500);
+      server.deposit(Object.keys(server.accounts)[0],2500);
+      log('Auto-built default demo server with seeded accounts (builder).');
+      renderServerStatus();renderAccounts();
+    });
+
+  </script>
+</body>
+</html>
